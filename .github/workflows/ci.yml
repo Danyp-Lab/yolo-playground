@@ -1,0 +1,44 @@
+name: Python Modern CI
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  lint-and-test:
+    name: Lint, Format Check & Test
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.11", "3.12"]
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          version: "latest"
+
+      - name: Set up Python ${{ matrix.python-version }}
+        run: uv python install ${{ matrix.python-version }}
+
+      - name: Run Ruff Linter
+        run: uvx ruff check .
+
+      - name: Run Ruff Format Check
+        run: uvx ruff format --check .
+
+      - name: Install dependencies & Run tests
+        run: |
+          if [ -f "pyproject.toml" ]; then
+            uv pip install --system -e ".[dev]" || uv pip install --system -e .
+          fi
+          if [ -d "tests" ]; then
+            uv run pytest
+          else
+            echo "No test suite found. Skipping test step."
+          fi
